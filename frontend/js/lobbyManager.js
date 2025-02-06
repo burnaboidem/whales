@@ -1,4 +1,6 @@
 import { GameModal } from './modal.js';
+import { TransactionMonitorService } from './services/TransactionMonitorService.js';
+import { TransactionMonitorModal } from './modals/TransactionMonitorModal.js';
 
 export class LobbyManager {
     constructor(gameService, walletManager) {
@@ -8,6 +10,8 @@ export class LobbyManager {
         this.playerCount = 0;
         this.maxPlayers = 2;
         this.paymentRequested = false;
+        this.transactionMonitor = new TransactionMonitorService();
+        this.monitorModal = null;
     }
 
     showGameModeSelection(onSinglePlayer, onMultiPlayer) {
@@ -73,31 +77,8 @@ export class LobbyManager {
                 if (lobbyState.status === 'matched' && !this.paymentRequested) {
                     this.paymentRequested = true;
                     
-                    // Show payment request modal
-                    GameModal.show('Payment Required', async () => {
-                        try {
-                            // Request payment
-                            await this.walletManager.payGameEntry(this.currentLobbyId);
-                            console.log('Entry fee payment successful');
-                            
-                            // Update payment status in lobby
-                            await this.gameService.updatePaymentStatus(
-                                this.currentLobbyId, 
-                                this.walletManager.getPublicKey().toString(),
-                                'paid'
-                            );
-                        } catch (error) {
-                            console.error('Payment failed:', error);
-                            await this.leaveLobby();
-                            GameModal.show('Error', () => {}, 
-                                `Failed to process payment. Error: ${error.message || 'Unknown error'}`);
-                        }
-                    }, `
-                        <div class="payment-request">
-                            <p>Match found! Please deposit 0.1 SOL to start the game.</p>
-                            <p>Both players must deposit to begin.</p>
-                        </div>
-                    `);
+                    // Show payment request modal with correct button text
+                    await this.handlePayment(this.currentLobbyId);
                 }
                 
                 // Start game when all players have paid
@@ -218,5 +199,147 @@ export class LobbyManager {
             default:
                 return 'Searching...';
         }
+    }
+
+    async handlePayment(lobbyId) {
+        let modalOverlay;
+        let transactionSignature;
+        
+        try {
+            // Check if user has already paid
+            const transactionsSnapshot = await this.gameService.getTransactions(lobbyId);
+            const userTransactions = Object.values(transactionsSnapshot.val() || {})
+                .filter(tx => tx.walletAddress === this.walletManager.getPublicKey().toString());
+            
+            const hasPendingOrSuccess = userTransactions.some(
+                tx => ['pending', 'success'].includes(tx.status)
+            );
+            
+            if (hasPendingOrSuccess) {
+                throw new Error('Payment already submitted');
+            }
+
+            // Create lobby display if it doesn't exist
+            this.ensureLobbyDisplay();
+
+            // Show initial payment modal
+            modalOverlay = GameModal.showPaymentModal('Payment Required', async () => {
+                try {
+                    // Request payment
+                    transactionSignature = await this.walletManager.payGameEntry(lobbyId);
+                    
+                    // Immediately show transaction monitor modal
+                    this.monitorModal = new TransactionMonitorModal().show(
+                        transactionSignature,
+                        this.gameService.getEscrowAddress()
+                    );
+
+                    // Record transaction and get first transaction timestamp
+                    await this.gameService.recordTransaction(
+                        lobbyId,
+                        this.walletManager.getPublicKey().toString(),
+                        transactionSignature
+                    );
+
+                    // Get the first transaction timestamp for the timer
+                    const firstTransactionTimestamp = await this.gameService.getFirstTransactionTimestamp(lobbyId);
+                    
+                    if (firstTransactionTimestamp) {
+                        const elapsedTime = Date.now() - firstTransactionTimestamp;
+                        const remainingTime = Math.max(300000 - elapsedTime, 0); // 5 minutes in ms
+                        this.monitorModal.startRefundTimer(
+                            async () => {
+                                try {
+                                    await this.gameService.requestRefund(lobbyId, transactionSignature);
+                                    this.monitorModal.updateTransactionStatus('refund-requested');
+                                } catch (error) {
+                                    console.error('Error requesting refund:', error);
+                                    this.monitorModal.updateTransactionStatus('refund-failed', { 
+                                        error: error.message 
+                                    });
+                                }
+                            },
+                            remainingTime
+                        );
+                    }
+
+                    // Start monitoring
+                    this.transactionMonitor.monitorTransaction(
+                        transactionSignature,
+                        this.gameService.getEscrowAddress(),
+                        async (update) => {
+                            try {
+                                if (update.type === 'balance') {
+                                    this.monitorModal.updateEscrowBalance(update.balance);
+                                } else {
+                                    this.monitorModal.updateTransactionStatus(update.status, update);
+                                    
+                                    if (update.status === 'confirmed') {
+                                        // First update the transaction status
+                                        await this.gameService.updateTransactionStatus(
+                                            lobbyId,
+                                            transactionSignature,
+                                            'confirmed'
+                                        );
+
+                                        // Then update the player's payment status
+                                        await this.gameService.updateLobbyPaymentStatus(
+                                            lobbyId,
+                                            this.walletManager.getPublicKey().toString(),
+                                            'paid'
+                                        );
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('Error updating status:', error);
+                                this.monitorModal.updateTransactionStatus('error', { 
+                                    error: 'Failed to update payment status' 
+                                });
+                            }
+                        }
+                    );
+
+                } catch (error) {
+                    console.error('Payment failed:', error);
+                    if (this.monitorModal) {
+                        this.monitorModal.updateTransactionStatus('failed', { error: error.message });
+                    }
+                }
+            });
+
+            // Position the payment modal next to the lobby
+            this.positionModals();
+
+        } catch (error) {
+            console.error('Payment process error:', error);
+            if (this.monitorModal) {
+                this.monitorModal.updateTransactionStatus('failed', { error: error.message });
+            }
+        }
+    }
+
+    ensureLobbyDisplay() {
+        if (!document.getElementById('lobby-container')) {
+            const lobbyContainer = document.createElement('div');
+            lobbyContainer.id = 'lobby-container';
+            lobbyContainer.className = 'lobby-container';
+            document.body.appendChild(lobbyContainer);
+        }
+    }
+
+    positionModals() {
+        const lobbyContainer = document.getElementById('lobby-container');
+        if (!lobbyContainer) return;
+
+        const lobbyRect = lobbyContainer.getBoundingClientRect();
+        
+        // Position payment/monitor modal to the right of the lobby
+        const modalElements = document.querySelectorAll('.modal-content');
+        modalElements.forEach((modal, index) => {
+            modal.style.position = 'fixed';
+            modal.style.left = `${lobbyRect.right + 20}px`;
+            modal.style.top = `${lobbyRect.top + (index * 20)}px`;
+            modal.style.transform = 'none';
+        });
     }
 } 

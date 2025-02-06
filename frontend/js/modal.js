@@ -1,5 +1,5 @@
 export class GameModal {
-    static show(title, onClose, customMessage = null) {
+    static show(title, onClose, customMessage = null, buttonText = null) {
         const modalOverlay = document.createElement('div');
         modalOverlay.className = 'modal-overlay';
         
@@ -13,7 +13,7 @@ export class GameModal {
         content.className = 'modal-body';
         
         if (customMessage) {
-            // Show custom message (like game over screen)
+            // Show custom message
             content.innerHTML = customMessage;
         } else {
             // Show default instructions
@@ -37,7 +37,7 @@ export class GameModal {
         }
         
         const startButton = document.createElement('button');
-        startButton.textContent = customMessage ? 'Play Again' : 'START.EXE';
+        startButton.textContent = buttonText || (customMessage ? 'Play Again' : 'START.EXE');
         startButton.className = 'win95-button';
         
         modalContent.appendChild(titleBar);
@@ -64,5 +64,71 @@ export class GameModal {
             modalOverlay.remove();
             if (onClose) onClose();
         };
+    }
+
+    static showPaymentModal(title, onClose, transactionInfo = null) {
+        const modalOverlay = document.createElement('div');
+        modalOverlay.className = 'modal-overlay';
+        
+        const modalContent = document.createElement('div');
+        modalContent.className = 'modal-content payment-modal';
+        
+        const titleBar = document.createElement('h2');
+        titleBar.textContent = title;
+        
+        const content = document.createElement('div');
+        content.className = 'modal-body';
+
+        if (transactionInfo) {
+            // Show transaction status
+            content.innerHTML = `
+                <div class="payment-status">
+                    <p>Transaction Status: ${transactionInfo.status}</p>
+                    ${transactionInfo.transactionSignature ? 
+                        `<p>Transaction ID: <a href="https://solscan.io/tx/${transactionInfo.transactionSignature}" 
+                            target="_blank" rel="noopener noreferrer">
+                            ${transactionInfo.transactionSignature.slice(0, 8)}...
+                        </a></p>` : ''
+                    }
+                    ${transactionInfo.failureReason ? 
+                        `<p class="error-message">Error: ${transactionInfo.failureReason}</p>` : ''
+                    }
+                </div>
+            `;
+        } else {
+            // Show initial payment request
+            content.innerHTML = `
+                <div class="payment-request">
+                    <p>Match found! Please deposit 0.1 SOL to start the game.</p>
+                    <p>Both players must deposit to begin.</p>
+                </div>
+            `;
+        }
+        
+        const button = document.createElement('button');
+        button.className = 'win95-button';
+        
+        if (transactionInfo && transactionInfo.status === 'failed') {
+            button.textContent = 'Try Again';
+        } else if (transactionInfo && transactionInfo.status === 'success') {
+            button.textContent = 'Waiting for Opponent';
+            button.disabled = true;
+        } else {
+            button.textContent = 'Add 0.1 SOL to pot';
+        }
+        
+        modalContent.appendChild(titleBar);
+        modalContent.appendChild(content);
+        modalContent.appendChild(button);
+        modalOverlay.appendChild(modalContent);
+        document.body.appendChild(modalOverlay);
+
+        if (!button.disabled) {
+            button.onclick = () => {
+                if (onClose) onClose();
+            };
+        }
+
+        return modalOverlay;
     }
 } 

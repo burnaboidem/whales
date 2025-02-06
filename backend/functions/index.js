@@ -2,6 +2,8 @@ const multiplayerFunctions = require('./multiplayer');
 const functions = require('firebase-functions');
 const cors = require('cors')({ origin: true });
 const { admin, db } = require('./admin');
+const { paymentManager } = require('./solanaPayments');
+const { createMultiplayerGame, endMultiplayerGame, cleanupLobbies } = require('./multiplayer');
 require('dotenv').config();
 
 // Set up environment variables for functions
@@ -20,9 +22,10 @@ exports.setFunctionsConfig = functions.https.onRequest(async (req, res) => {
     }
 });
 
-exports.createMultiplayerGame = multiplayerFunctions.createMultiplayerGame;
-exports.endMultiplayerGame = multiplayerFunctions.endMultiplayerGame;
-exports.cleanupLobbies = multiplayerFunctions.cleanupLobbies;
+// Export multiplayer functions
+exports.createMultiplayerGame = createMultiplayerGame;
+exports.endMultiplayerGame = endMultiplayerGame;
+exports.cleanupLobbies = cleanupLobbies;
 
 // Create a new multiplayer game
 exports.createGame = functions.https.onCall(async (data, context) => {
@@ -149,22 +152,54 @@ exports.updatePaymentStatus = functions.https.onCall(async (data, context) => {
     }
 });
 
-exports.cleanupLobbies = functions.pubsub.schedule('every 5 minutes').onRun(async (context) => {
-    try {
-        const lobbiesRef = db.ref('lobbies');
-        const snapshot = await lobbiesRef.once('value');
-        const lobbies = snapshot.val() || {};
+exports.requestRefund = functions.https.onCall(async (data, context) => {
+    // Ensure user is authenticated
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+    }
 
-        const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-        
-        // Clean up old lobbies
-        Object.entries(lobbies).forEach(async ([id, lobby]) => {
-            if (lobby.createdAt < fiveMinutesAgo && lobby.status !== 'in_game') {
-                await lobbiesRef.child(id).remove();
-            }
+    const { lobbyId, transactionSignature } = data;
+    
+    try {
+        // Get the lobby data
+        const lobbyRef = admin.database().ref(`lobbies/${lobbyId}`);
+        const lobbySnapshot = await lobbyRef.once('value');
+        const lobby = lobbySnapshot.val();
+
+        if (!lobby) {
+            throw new functions.https.HttpsError('not-found', 'Lobby not found');
+        }
+
+        // Verify the transaction belongs to the user
+        const transactionRef = admin.database().ref(`lobbies/${lobbyId}/transactions/${transactionSignature}`);
+        const snapshot = await transactionRef.once('value');
+        const transaction = snapshot.val();
+
+        if (!transaction) {
+            throw new functions.https.HttpsError('not-found', 'Transaction not found');
+        }
+
+        if (transaction.walletAddress !== context.auth.uid) {
+            throw new functions.https.HttpsError('permission-denied', 'Not authorized to refund this transaction');
+        }
+
+        // Process the refund
+        const refundResult = await paymentManager.processRefund(
+            transaction.walletAddress,
+            transactionSignature
+        );
+
+        // Update transaction status
+        await transactionRef.update({
+            status: 'refunded',
+            refundSignature: refundResult.signature,
+            refundTimestamp: admin.database.ServerValue.TIMESTAMP
         });
+
+        return { success: true, signature: refundResult.signature };
     } catch (error) {
-        console.error('Error cleaning up lobbies:', error);
+        console.error('Refund error:', error);
+        throw new functions.https.HttpsError('internal', error.message);
     }
 });
 

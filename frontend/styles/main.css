@@ -432,13 +432,14 @@ body {
 
 /* Lobby styles */
 .lobby-container {
+    position: fixed;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
     background: var(--win95-gray);
-    border: 2px solid var(--win95-darker);
-    border-radius: 0;
-    padding: 15px;
-    width: 100%;
-    max-width: 500px;
-    margin: 20px auto;
+    border: 1px solid var(--win95-darker);
+    padding: 20px;
+    z-index: 100;
 }
 
 .lobby-header {
@@ -510,4 +511,130 @@ body {
     0% { transform: scale(1); }
     50% { transform: scale(1.05); }
     100% { transform: scale(1); }
+}
+
+.transaction-monitor-modal {
+    min-width: 400px;
+}
+
+.transaction-status, .escrow-balance, .refund-timer {
+    margin: 15px 0;
+    padding: 10px;
+    background: var(--win95-gray);
+    border: 1px solid var(--win95-darker);
+}
+
+.status-item, .balance-item, .timer-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 5px 0;
+}
+
+.status {
+    padding: 3px 8px;
+    border-radius: 3px;
+}
+
+.status.pending {
+    background: #FFA500;
+    color: white;
+}
+
+.status.confirmed {
+    background: #4CAF50;
+    color: white;
+}
+
+.status.failed {
+    background: #F44336;
+    color: white;
+}
+
+.loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--win95-gray);
+    border-top: 2px solid var(--win95-blue);
+    border-radius: 50%;
+    margin: 10px auto;
+    animation: spin 1s linear infinite;
+}
+
+.refund-section {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.error-message {
+    color: #F44336;
+    margin-top: 10px;
+}
+
+.matched-players {
+    background: #90EE90;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+}
+
+.transaction-link {
+    background: var(--win95-light);
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid var(--win95-darker);
+    text-align: center;
+}
+
+.transaction-link h3 {
+    color: var(--win95-blue);
+    margin-bottom: 10px;
+}
+
+.transaction-copy {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.tx-signature-input {
+    font-family: monospace;
+    padding: 5px;
+    width: 300px;
+    border: 1px solid var(--win95-darker);
+    background: var(--win95-white);
+}
+
+.copy-button {
+    min-width: 70px;
+}
+
+.solscan-link {
+    display: inline-block;
+    margin: 10px 0;
+    padding: 8px 15px;
+    font-family: monospace;
+    text-decoration: none;
+    color: var(--win95-blue);
+    background: var(--win95-gray);
+    border: 1px solid var(--win95-darker);
+}
+
+.solscan-link:hover {
+    background: var(--win95-light);
+}
+
+.transaction-status {
+    margin-top: 20px;
+    padding: 15px;
+    background: var(--win95-gray);
+    border: 1px solid var(--win95-darker);
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 5px 0;
 } 

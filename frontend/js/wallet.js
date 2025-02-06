@@ -86,41 +86,39 @@ export class WalletManager {
     }
 
     async payGameEntry(lobbyId) {
-        if (!this.wallet) {
-            throw new Error('Wallet not connected');
-        }
-
         try {
-            // Create new transaction
-            const transaction = new web3.Transaction();
-            
-            // Get the latest blockhash
-            const { blockhash } = await this.connection.getLatestBlockhash();
-            transaction.recentBlockhash = blockhash;
-            
-            // Add the transfer instruction
-            transaction.add(
+            if (!this.wallet) {
+                throw new Error('Wallet not connected');
+            }
+
+            const escrowPublicKey = new web3.PublicKey(ESCROW_PUBLIC_KEY);
+            const amount = 0.1 * web3.LAMPORTS_PER_SOL; // 0.1 SOL in lamports
+
+            const transaction = new web3.Transaction().add(
                 web3.SystemProgram.transfer({
                     fromPubkey: this.wallet.publicKey,
-                    toPubkey: new web3.PublicKey(ESCROW_PUBLIC_KEY),
-                    lamports: 0.1 * web3.LAMPORTS_PER_SOL,
+                    toPubkey: escrowPublicKey,
+                    lamports: amount,
                 })
             );
 
-            // Set fee payer
+            // Get latest blockhash
+            const { blockhash } = await this.connection.getLatestBlockhash();
+            transaction.recentBlockhash = blockhash;
             transaction.feePayer = this.wallet.publicKey;
 
-            // Sign and send transaction
-            const signature = await this.wallet.signAndSendTransaction(transaction);
+            // For Phantom wallet, we need to use signAndSendTransaction
+            const { signature } = await this.wallet.signAndSendTransaction(transaction);
             
-            // Verify payment with backend
-            const verifyPayment = firebase.functions().httpsCallable('verifyGameEntry');
-            const result = await verifyPayment({
-                transactionSignature: signature,
-                lobbyId
-            });
+            // Wait for confirmation
+            const confirmation = await this.connection.confirmTransaction(signature, 'confirmed');
+            
+            if (confirmation.value.err) {
+                throw new Error('Transaction failed to confirm');
+            }
 
-            return result.data.success;
+            console.log('Transaction successful:', signature);
+            return signature;
         } catch (error) {
             console.error('Error paying entry fee:', error);
             throw error;

@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, set, onValue, update, push, remove, get } from 'firebase/database';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { firebaseConfig } from './firebase-config.js';
+import { ESCROW_PUBLIC_KEY } from './constants.js';
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
@@ -179,6 +180,163 @@ export class FirebaseGameService {
             await updatePaymentFunction({ lobbyId, playerId, status });
         } catch (error) {
             console.error('Error updating payment status:', error);
+            throw error;
+        }
+    }
+
+    async recordTransaction(lobbyId, walletAddress, transactionSignature) {
+        try {
+            const transactionRef = ref(db, `lobbies/${lobbyId}/transactions/${transactionSignature}`);
+            const lobbyRef = ref(db, `lobbies/${lobbyId}`);
+            
+            // Check if this transaction signature has been used
+            const existingTransaction = await get(ref(db, `lobbies/${lobbyId}/transactions`));
+            if (existingTransaction.exists()) {
+                const transactions = existingTransaction.val();
+                const isDuplicate = Object.values(transactions).some(
+                    tx => tx.transactionSignature === transactionSignature
+                );
+                if (isDuplicate) {
+                    throw new Error('Transaction signature already used');
+                }
+            }
+
+            const timestamp = Date.now();
+
+            // Record new transaction
+            await set(transactionRef, {
+                timestamp,
+                amount: '0.1',
+                walletAddress,
+                status: 'pending',
+                transactionSignature
+            });
+
+            // If this is the first transaction, record the timestamp in the lobby
+            const lobbySnapshot = await get(lobbyRef);
+            const lobbyData = lobbySnapshot.val();
+            if (!lobbyData.firstTransactionTimestamp) {
+                await update(lobbyRef, {
+                    firstTransactionTimestamp: timestamp
+                });
+            }
+
+            return { transactionRef, timestamp };
+        } catch (error) {
+            console.error('Error recording transaction:', error);
+            throw error;
+        }
+    }
+
+    async updateTransactionStatus(lobbyId, transactionSignature, status, failureReason = null) {
+        try {
+            const transactionRef = ref(db, `lobbies/${lobbyId}/transactions/${transactionSignature}`);
+            const updates = {
+                status,
+                ...(failureReason && { failureReason })
+            };
+            await update(transactionRef, updates);
+        } catch (error) {
+            console.error('Error updating transaction status:', error);
+            throw error;
+        }
+    }
+
+    async getTransactions(lobbyId) {
+        try {
+            const transactionsRef = ref(db, `lobbies/${lobbyId}/transactions`);
+            const snapshot = await get(transactionsRef);
+            return snapshot;
+        } catch (error) {
+            console.error('Error getting transactions:', error);
+            throw error;
+        }
+    }
+
+    getEscrowAddress() {
+        if (!ESCROW_PUBLIC_KEY) {
+            throw new Error('Escrow public key not configured');
+        }
+        return ESCROW_PUBLIC_KEY;
+    }
+
+    async requestRefund(lobbyId, transactionSignature) {
+        try {
+            const requestRefundFunction = httpsCallable(functions, 'requestRefund');
+            return await requestRefundFunction({ lobbyId, transactionSignature });
+        } catch (error) {
+            console.error('Error requesting refund:', error);
+            throw error;
+        }
+    }
+
+    async verifyPayment(lobbyId, transactionSignature) {
+        try {
+            const verifyPaymentFunction = httpsCallable(functions, 'verifyGameEntry');
+            const result = await verifyPaymentFunction({ 
+                lobbyId, 
+                transactionSignature 
+            });
+            return result.data;
+        } catch (error) {
+            console.error('Error verifying payment:', error);
+            throw error;
+        }
+    }
+
+    async updateLobbyPaymentStatus(lobbyId, playerWallet, status) {
+        try {
+            const lobbyRef = ref(db, `lobbies/${lobbyId}`);
+            const snapshot = await get(lobbyRef);
+            const lobby = snapshot.val();
+            
+            if (!lobby || !lobby.players) {
+                throw new Error('Lobby not found');
+            }
+
+            // Find the player in the array
+            const playerIndex = lobby.players.findIndex(p => p.id === playerWallet);
+            if (playerIndex === -1) {
+                throw new Error('Player not found in lobby');
+            }
+
+            // Update the specific player's payment status
+            await update(ref(db, `lobbies/${lobbyId}/players/${playerIndex}`), {
+                paymentStatus: status
+            });
+
+            // Also update the transaction status
+            const transactionsRef = ref(db, `lobbies/${lobbyId}/transactions`);
+            const txSnapshot = await get(transactionsRef);
+            const transactions = txSnapshot.val();
+
+            if (transactions) {
+                // Find the latest transaction for this player
+                const playerTx = Object.entries(transactions).find(([_, tx]) => 
+                    tx.walletAddress === playerWallet && tx.status === 'pending'
+                );
+
+                if (playerTx) {
+                    const [txId, _] = playerTx;
+                    await update(ref(db, `lobbies/${lobbyId}/transactions/${txId}`), {
+                        status: 'confirmed'
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error updating lobby payment status:', error);
+            throw error;
+        }
+    }
+
+    async getFirstTransactionTimestamp(lobbyId) {
+        try {
+            const lobbyRef = ref(db, `lobbies/${lobbyId}`);
+            const snapshot = await get(lobbyRef);
+            const lobbyData = snapshot.val();
+            return lobbyData.firstTransactionTimestamp || null;
+        } catch (error) {
+            console.error('Error getting first transaction timestamp:', error);
             throw error;
         }
     }

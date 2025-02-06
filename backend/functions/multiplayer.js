@@ -1,4 +1,5 @@
 const functions = require('firebase-functions');
+const { defineString } = require('firebase-functions/params');
 const { admin, db } = require('./admin');
 
 // Define the functions first
@@ -104,31 +105,32 @@ const endMultiplayerGame = functions.https.onCall(async (data, context) => {
     }
 });
 
-const cleanupLobbies = functions.pubsub.schedule('every 5 minutes').onRun(async (context) => {
-    try {
-        const lobbiesRef = db.ref('lobbies');
-        const snapshot = await lobbiesRef.once('value');
-        const lobbies = snapshot.val();
+// Update to use 1st gen scheduled function
+const cleanupLobbies = functions.pubsub
+    .schedule('every 5 minutes')
+    .timeZone('America/New_York')
+    .onRun(async (context) => {
+        try {
+            const lobbiesRef = db.ref('lobbies');
+            const snapshot = await lobbiesRef.once('value');
+            const lobbies = snapshot.val() || {};
 
-        if (!lobbies) return null;
+            const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+            
+            // Clean up old lobbies
+            const cleanupPromises = Object.entries(lobbies).map(async ([id, lobby]) => {
+                if (lobby.createdAt < fiveMinutesAgo && lobby.status !== 'in_game') {
+                    await lobbiesRef.child(id).remove();
+                }
+            });
 
-        const now = Date.now();
-        const TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
-
-        const cleanupPromises = Object.entries(lobbies).map(async ([lobbyId, lobby]) => {
-            // Remove lobbies that are older than 5 minutes and still in 'waiting' status
-            if (lobby.status === 'waiting' && (now - lobby.createdAt) > TIMEOUT) {
-                await lobbiesRef.child(lobbyId).remove();
-            }
-        });
-
-        await Promise.all(cleanupPromises);
-        return null;
-    } catch (error) {
-        console.error('Error cleaning up lobbies:', error);
-        return null;
-    }
-});
+            await Promise.all(cleanupPromises);
+            return null;
+        } catch (error) {
+            console.error('Error cleaning up lobbies:', error);
+            return null;
+        }
+    });
 
 // Then export them
 module.exports = {

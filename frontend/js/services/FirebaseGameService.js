@@ -101,4 +101,49 @@ export class FirebaseGameService {
 
         await batch.commit();
     }
+
+    async requestRefund(lobbyId, transactionSignature) {
+        try {
+            // Get the current user's ID token
+            const user = auth.currentUser;
+            if (!user) {
+                throw new Error('Must be logged in to request refund');
+            }
+
+            const idToken = await user.getIdToken();
+            
+            const requestRefundFunction = httpsCallable(functions, 'requestRefund');
+            const result = await requestRefundFunction({ 
+                lobbyId, 
+                transactionSignature,
+                idToken 
+            });
+            
+            return result.data;
+        } catch (error) {
+            console.error('Error requesting refund:', error);
+            throw error;
+        }
+    }
+
+    async updateLobbyPaymentStatus(lobbyId, playerWallet, status) {
+        try {
+            // Get the current user's ID token
+            const user = auth.currentUser;
+            if (!user) {
+                throw new Error('Must be logged in to update payment status');
+            }
+
+            const updatePaymentFunction = httpsCallable(functions, 'updatePaymentStatus');
+            await updatePaymentFunction({ 
+                lobbyId, 
+                playerId: playerWallet, 
+                status,
+                idToken: await user.getIdToken()
+            });
+        } catch (error) {
+            console.error('Error updating lobby payment status:', error);
+            throw error;
+        }
+    }
 } 
