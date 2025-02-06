@@ -1,0 +1,25 @@
+{
+  "name": "solana-fishing-game-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for Solana Fishing Game",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "firebase": "^10.8.0",
+    "@firebase/app": "^0.9.25",
+    "@firebase/auth": "^1.5.1",
+    "@firebase/firestore": "^4.4.1",
+    "@firebase/functions": "^0.11.1",
+    "@firebase/database": "^1.0.2",
+    "@solana/web3.js": "^1.87.6"
+  },
+  "devDependencies": {
+    "vite": "^5.0.12",
+    "rimraf": "^5.0.5"
+  }
+}

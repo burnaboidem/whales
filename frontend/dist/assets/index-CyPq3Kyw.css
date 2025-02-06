@@ -1,0 +1,53 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: "Press Start 2P", cursive;
+    color: #fff
+}
+
+#game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px
+}
+
+#game-status {
+    display: flex;
+    justify-content: space-between;
+    width: 800px;
+    margin-bottom: 10px
+}
+
+#scores {
+    display: flex;
+    gap: 20px
+}
+
+#gameCanvas {
+    border: 2px solid #000;
+    background-color: #fff;
+    margin: 20px 0
+}
+
+#wallet-container {
+    margin-top: 20px
+}
+
+#connect-wallet {
+    padding: 10px 20px;
+    font-family: "Press Start 2P", cursive;
+    background-color: #4caf50;
+    border: none;
+    color: #fff;
+    cursor: pointer
+}
+
+#connect-wallet:hover {
+    background-color: #45a049
+}

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solana Fishing Battle</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/main.css">
+    <!-- Add Firebase scripts -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        import { getFunctions } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
+    </script>
+    <!-- Add Solana Web3 before your main script -->
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+</head>
+<body>
+    <div id="game-container">
+        <div class="window-title">
+            Solana Fishing Game.exe
+        </div>
+        <div id="game-status">
+            <div id="player1-score">Score: 0 fish</div>
+            <div id="timer">2:30</div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+        <div id="button-container">
+            <div class="wallet-info">
+                <button id="connect-wallet" class="win95-button">Connect Wallet</button>
+                <span id="wallet-address" class="win95-text"></span>
+            </div>
+            <button id="stop-game" class="win95-button">Stop Game</button>
+        </div>
+    </div>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

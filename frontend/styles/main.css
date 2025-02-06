@@ -1,0 +1,513 @@
+/* Windows 95 inspired theme */
+:root {
+    --win95-gray: #c0c0c0;
+    --win95-dark: #808080;
+    --win95-darker: #404040;
+    --win95-light: #dfdfdf;
+    --win95-blue: #000080;
+    --win95-white: #ffffff;
+    --pixel-size: 2px;
+}
+
+@font-face {
+    font-family: 'VT323';
+    src: url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+}
+
+body {
+    margin: 0;
+    padding: 20px;
+    background-color: var(--win95-blue);
+    background-image: linear-gradient(45deg, #000070 25%, transparent 25%),
+        linear-gradient(-45deg, #000070 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #000070 75%),
+        linear-gradient(-45deg, transparent 75%, #000070 75%);
+    background-size: 20px 20px;
+    font-family: 'VT323', monospace;
+    color: var(--win95-darker);
+}
+
+#game-container {
+    background: var(--win95-gray);
+    border: var(--pixel-size) solid;
+    border-color: var(--win95-light) var(--win95-darker) var(--win95-darker) var(--win95-light);
+    padding: 6px;
+    box-shadow: var(--pixel-size) var(--pixel-size) 0 rgba(0, 0, 0, 0.5);
+    max-width: 840px;
+    margin: 0 auto;
+}
+
+.window-title {
+    background: var(--win95-blue);
+    color: var(--win95-white);
+    padding: 4px;
+    font-size: 16px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+}
+
+.window-title::before {
+    content: '';
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background: var(--win95-gray);
+    margin-right: 6px;
+    border: 1px solid var(--win95-darker);
+}
+
+#gameCanvas {
+    border: var(--pixel-size) solid;
+    border-color: var(--win95-darker) var(--win95-light) var(--win95-light) var(--win95-darker);
+    background-color: #008080;
+    margin: 0;
+    image-rendering: pixelated;
+}
+
+#game-status {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px;
+    background: var(--win95-gray);
+    border: var(--pixel-size) solid;
+    border-color: var(--win95-darker) var(--win95-light) var(--win95-light) var(--win95-darker);
+    margin: 6px 0;
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+}
+
+/* Update button container styles */
+#button-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 20px;
+    padding: 6px;
+    background: var(--win95-gray);
+    border: var(--pixel-size) solid;
+    border-color: var(--win95-darker) var(--win95-light) var(--win95-light) var(--win95-darker);
+}
+
+/* Unified button styles */
+.win95-button {
+    background: var(--win95-gray);
+    border: var(--pixel-size) solid;
+    border-color: var(--win95-light) var(--win95-darker) var(--win95-darker) var(--win95-light);
+    padding: 6px 12px;
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    color: var(--win95-darker);
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 120px;
+    justify-content: center;
+}
+
+.win95-button:before {
+    content: '';
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background-size: contain;
+    margin-right: 4px;
+}
+
+#connect-wallet:before {
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect x="2" y="4" width="12" height="8" fill="%23404040"/></svg>');
+}
+
+#stop-game:before {
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect x="4" y="4" width="8" height="8" fill="%23404040"/></svg>');
+}
+
+/* Add hover state for better feedback */
+.win95-button:hover {
+    background: var(--win95-light);
+}
+
+/* Keep the active state */
+.win95-button:active {
+    border-color: var(--win95-darker) var(--win95-light) var(--win95-light) var(--win95-darker);
+    padding: 7px 11px 5px 13px;
+}
+
+/* Remove old button styles */
+#wallet-container {
+    display: none;
+}
+
+.stop-button {
+    display: none;
+}
+
+/* Update modal button to match */
+.modal-content .win95-button {
+    margin: 2rem auto 0;
+    min-width: 120px;
+    justify-content: center;
+}
+
+.modal-content .win95-button:before {
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><polygon points="4,4 12,8 4,12" fill="%23404040"/></svg>');
+}
+
+/* Modal styling */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--win95-gray);
+    border: var(--pixel-size) solid;
+    border-color: var(--win95-light) var(--win95-darker) var(--win95-darker) var(--win95-light);
+    font-family: 'VT323', monospace;
+    color: var(--win95-darker);
+}
+
+.modal-content h2 {
+    background: var(--win95-blue);
+    color: var(--win95-white);
+    padding: 4px;
+    margin: -2rem -2rem 1rem -2rem;
+}
+
+.start-button {
+    background: var(--win95-gray);
+    border: var(--pixel-size) solid;
+    border-color: var(--win95-light) var(--win95-darker) var(--win95-darker) var(--win95-light);
+    font-family: 'VT323', monospace;
+}
+
+/* Point animations */
+.point-animation {
+    font-family: 'VT323', monospace;
+    font-size: 24px;
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+#wallet-message {
+    font-family: 'Press Start 2P', cursive;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Make the canvas slightly dimmed before wallet connection */
+.wallet-not-connected #gameCanvas {
+    opacity: 0.5;
+    filter: grayscale(50%);
+}
+
+/* Add styles for the stop button */
+#game-controls {
+    display: flex;
+    justify-content: flex-end;
+    padding: 4px;
+    margin-top: 6px;
+}
+
+.stop-button {
+    background: var(--win95-gray);
+    border: var(--pixel-size) solid;
+    border-color: var(--win95-light) var(--win95-darker) var(--win95-darker) var(--win95-light);
+    padding: 2px 6px;
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    color: var(--win95-darker);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.stop-button::before {
+    content: '×';
+    color: var(--win95-darker);
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.stop-button:active {
+    border-color: var(--win95-darker) var(--win95-light) var(--win95-light) var(--win95-darker);
+    padding: 3px 5px 1px 7px;
+}
+
+.wallet-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#wallet-address {
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    color: var(--win95-darker);
+    background: var(--win95-white);
+    border: var(--pixel-size) solid;
+    border-color: var(--win95-darker) var(--win95-light) var(--win95-light) var(--win95-darker);
+    padding: 4px 8px;
+    min-width: 140px;
+    text-align: center;
+}
+
+/* Add these styles for the end game modal */
+.end-score {
+    font-size: 24px;
+    text-align: center;
+    color: var(--win95-blue);
+    margin: 20px 0;
+    font-family: 'VT323', monospace;
+}
+
+.score-breakdown {
+    text-align: center;
+    margin: 15px 0;
+}
+
+.bonus-message {
+    color: #008000;
+    font-size: 18px;
+    margin-top: 10px;
+}
+
+.modal-body {
+    padding: 15px;
+}
+
+/* Update existing modal styles */
+.modal-content {
+    min-width: 300px;
+    max-width: 500px;
+    background: var(--win95-gray);
+    border: var(--pixel-size) solid;
+    border-color: var(--win95-light) var(--win95-darker) var(--win95-darker) var(--win95-light);
+    font-family: 'VT323', monospace;
+}
+
+.modal-content h2 {
+    margin: 0;
+    padding: 6px;
+    background: var(--win95-blue);
+    color: var(--win95-white);
+    font-size: 16px;
+}
+
+/* Confirmation modal styles */
+.confirm-modal {
+    min-width: 300px;
+}
+
+.confirm-message {
+    text-align: center;
+    margin: 20px 0;
+    font-size: 16px;
+}
+
+.button-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.confirm-modal .win95-button {
+    min-width: 80px;
+    margin: 0;
+}
+
+/* Make the Yes button red-tinted */
+#confirm-stop {
+    background-color: #ffdddd;
+}
+
+#confirm-stop:hover {
+    background-color: #ffcccc;
+}
+
+/* Make the No button green-tinted */
+#cancel-stop {
+    background-color: #ddffdd;
+}
+
+#cancel-stop:hover {
+    background-color: #ccffcc;
+}
+
+.game-notification {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--win95-gray);
+    border: var(--pixel-size) solid;
+    border-color: var(--win95-light) var(--win95-darker) var(--win95-darker) var(--win95-light);
+    padding: 15px 30px;
+    font-family: 'VT323', monospace;
+    font-size: 24px;
+    color: var(--win95-blue);
+    text-align: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+    z-index: 1000;
+    pointer-events: none;
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.game-notification.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Add animation for the notification */
+@keyframes notification-pulse {
+    0% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.1); }
+    100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+.game-notification.show {
+    opacity: 1;
+    visibility: visible;
+    animation: notification-pulse 0.3s ease-in-out;
+}
+
+/* Game mode selection styles */
+.mode-selection {
+    text-align: center;
+    padding: 20px;
+}
+
+.mode-selection .button-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.mode-selection .win95-button {
+    width: 100%;
+    padding: 10px;
+}
+
+/* Searching lobby styles */
+.searching-lobby {
+    text-align: center;
+    padding: 20px;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--win95-gray);
+    border-top: 4px solid var(--win95-blue);
+    border-radius: 50%;
+    margin: 20px auto;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.searching-modal {
+    min-width: 300px;
+}
+
+#cancel-search {
+    margin-top: 20px;
+}
+
+/* Lobby styles */
+.lobby-container {
+    background: var(--win95-gray);
+    border: 2px solid var(--win95-darker);
+    border-radius: 0;
+    padding: 15px;
+    width: 100%;
+    max-width: 500px;
+    margin: 20px auto;
+}
+
+.lobby-header {
+    background: var(--win95-blue);
+    color: var(--win95-white);
+    padding: 5px 10px;
+    margin: -15px -15px 15px -15px;
+    font-weight: bold;
+}
+
+.lobby-players {
+    background: var(--win95-white);
+    border: 1px solid var(--win95-dark);
+    padding: 10px;
+    margin-bottom: 15px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.player-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    margin: 5px 0;
+    background: var(--win95-gray);
+    border: 1px solid var(--win95-dark);
+}
+
+.player-item.current-user {
+    background: var(--win95-blue);
+    color: var(--win95-white);
+}
+
+.player-item.matched {
+    background: #90EE90;
+    animation: pulse 2s infinite;
+}
+
+.player-status {
+    margin-left: auto;
+    font-size: 0.9em;
+    color: var(--win95-darker);
+}
+
+.player-address {
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+.lobby-status {
+    text-align: center;
+    margin: 15px 0;
+    font-weight: bold;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+/* Match found animation */
+.match-found {
+    animation: matchFound 0.5s ease-in-out;
+    background: #90EE90 !important;
+}
+
+@keyframes matchFound {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+} 

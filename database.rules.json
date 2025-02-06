@@ -1,0 +1,61 @@
+{
+  "rules": {
+    ".read": "now < 1741150800000",
+    ".write": "now < 1741150800000",
+    "lobbies": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$lobbyId": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "players": {
+          ".validate": "newData.hasChildren() && newData.val().length <= 2",
+          "$player": {
+            "id": {
+              ".validate": "newData.isString()"
+            },
+            "joinedAt": {
+              ".validate": "newData.isNumber() && newData.val() <= now"
+            },
+            "paymentStatus": {
+              ".validate": "newData.isString() && newData.val().matches(/^(pending|paid)$/)"
+            }
+          }
+        },
+        "status": {
+          ".validate": "newData.isString() && newData.val().matches(/^(waiting|matched|ready|in_game|completed)$/)"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() <= now"
+        },
+        "gameId": {
+          ".validate": "!data.exists() || newData.isString()"
+        }
+      }
+    },
+    "games": {
+      ".read": "auth != null",
+      "$gameId": {
+        ".write": "auth != null && (!data.exists() || data.child('status').val() !== 'completed')",
+        "scores": {
+          ".validate": "newData.hasChildren()"
+        },
+        "status": {
+          ".validate": "newData.isString() && newData.val().matches(/^(active|completed)$/)"
+        },
+        "players": {
+          ".validate": "newData.hasChildren() && newData.val().length <= 2"
+        },
+        "entryFee": {
+          ".validate": "newData.isString() && newData.val() === '0.1'"
+        },
+        "prizePool": {
+          ".validate": "newData.isString() && newData.val() === '0.2'"
+        },
+        "timeRemaining": {
+          ".validate": "newData.isNumber() && newData.val() <= 150"
+        }
+      }
+    }
+  }
+} 
